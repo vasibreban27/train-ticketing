@@ -7,7 +7,8 @@ import java.util.List;
 
 public interface RouteStopRepository extends JpaRepository<RouteStop, Long> {
 
-    List<RouteStop> findByRouteIdOrderByStopOrderAsc(Long routeId);
-    List<RouteStop> findByStationNameIgnoreCase(String stationName);
-    List<RouteStop> findByRouteTrainIdOrderByStopOrderAsc(Long trainId);
+    List<RouteStop> findByRoute_IdOrderByStopOrderAsc(Long routeId);
+    List<RouteStop> findByStation_NameIgnoreCase(String stationName);
+    List<RouteStop> findByRoute_Train_IdOrderByStopOrderAsc(Long trainId);
+    void deleteByRoute_Id(Long routeId);
 }

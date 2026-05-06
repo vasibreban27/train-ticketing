@@ -8,5 +8,5 @@ import java.util.Optional;
 public interface RouteRepository extends JpaRepository<Route, Long> {
 
     Optional<Route> findByTrainId(Long trainId);
-    boolean existsByTrainId(Long trainId);
+    boolean existsByTrain_Id(Long trainId);
 }
