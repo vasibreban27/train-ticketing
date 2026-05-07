@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-    Optional<Station> findByNameIgnoreCase(String name);
-    boolean existsByNameIgnoreCase(String name);
     List<Booking> findByTrain_Id(Long trainId);
     List<Booking> findByCustomer_Id(Long customerId);
 
