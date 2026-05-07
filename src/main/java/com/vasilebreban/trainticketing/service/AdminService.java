@@ -1,6 +1,7 @@
 package com.vasilebreban.trainticketing.service;
 
 import com.vasilebreban.trainticketing.dto.request.DelayRequest;
+import com.vasilebreban.trainticketing.exception.ResourceNotFoundException;
 import com.vasilebreban.trainticketing.model.Booking;
 import com.vasilebreban.trainticketing.model.Train;
 import com.vasilebreban.trainticketing.repository.BookingRepository;
@@ -21,7 +22,7 @@ public class AdminService {
 
     public List<Booking> getBookingsForTrain(Long trainId) {
         if (!trainRepository.existsById(trainId)) {
-            throw new RuntimeException("Train not found with id: " + trainId);
+            throw new ResourceNotFoundException("Train not found with id: " + trainId);
         }
 
         return bookingRepository.findByTrain_Id(trainId);
@@ -30,7 +31,7 @@ public class AdminService {
     @Transactional
     public Train markTrainAsDelayed(Long trainId, DelayRequest request) {
         Train train = trainRepository.findById(trainId)
-                .orElseThrow(() -> new RuntimeException("Train not found with id: " + trainId));
+                .orElseThrow(() -> new ResourceNotFoundException("Train not found with id: " + trainId));
 
         train.setDelayMinutes(request.getDelayMinutes());
 

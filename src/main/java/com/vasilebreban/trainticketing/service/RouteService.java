@@ -3,6 +3,9 @@ package com.vasilebreban.trainticketing.service;
 import com.vasilebreban.trainticketing.dto.request.RouteRequest;
 import com.vasilebreban.trainticketing.dto.request.RouteStopRequest;
 import com.vasilebreban.trainticketing.dto.response.RouteResponse;
+import com.vasilebreban.trainticketing.exception.DuplicateResourceException;
+import com.vasilebreban.trainticketing.exception.InvalidRouteException;
+import com.vasilebreban.trainticketing.exception.ResourceNotFoundException;
 import com.vasilebreban.trainticketing.mapper.RouteMapper;
 import com.vasilebreban.trainticketing.model.Route;
 import com.vasilebreban.trainticketing.model.RouteStop;
@@ -49,10 +52,10 @@ public class RouteService {
     @Transactional
     public RouteResponse createRoute(RouteRequest request) {
         Train train = trainRepository.findById(request.getTrainId())
-                .orElseThrow(() -> new RuntimeException("Train not found with id: " + request.getTrainId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Train not found with id: " + request.getTrainId()));
 
         if (routeRepository.existsByTrain_Id(train.getId())) {
-            throw new RuntimeException("Route already exists for train id: " + train.getId());
+            throw new DuplicateResourceException("Route already exists for train id: " + train.getId());
         }
 
         validateRouteStops(request.getStops());
@@ -78,7 +81,7 @@ public class RouteService {
         Route route = findRouteById(routeId);
 
         Train train = trainRepository.findById(request.getTrainId())
-                .orElseThrow(() -> new RuntimeException("Train not found with id: " + request.getTrainId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Train not found with id: " + request.getTrainId()));
 
         validateRouteStops(request.getStops());
 
@@ -101,7 +104,7 @@ public class RouteService {
     @Transactional
     public void deleteRoute(Long routeId) {
         if (!routeRepository.existsById(routeId)) {
-            throw new RuntimeException("Route not found with id: " + routeId);
+            throw new ResourceNotFoundException("Route not found with id: " + routeId);
         }
 
         routeRepository.deleteById(routeId);
@@ -109,7 +112,7 @@ public class RouteService {
 
     private Route findRouteById(Long routeId) {
         return routeRepository.findById(routeId)
-                .orElseThrow(() -> new RuntimeException("Route not found with id: " + routeId));
+                .orElseThrow(() -> new ResourceNotFoundException("Route not found with id: " + routeId));
     }
 
     private List<RouteStop> createRouteStops(Route route, List<RouteStopRequest> stopRequests) {
@@ -121,7 +124,7 @@ public class RouteService {
 
     private RouteStop createRouteStop(Route route, RouteStopRequest stopRequest) {
         Station station = stationRepository.findByNameIgnoreCase(stopRequest.getStationName())
-                .orElseThrow(() -> new RuntimeException("Station not found: " + stopRequest.getStationName()));
+                .orElseThrow(() -> new ResourceNotFoundException("Station not found: " + stopRequest.getStationName()));
 
         return RouteStop.builder()
                 .route(route)
@@ -134,7 +137,7 @@ public class RouteService {
 
     private void validateRouteStops(List<RouteStopRequest> stops) {
         if (stops == null || stops.size() < 2) {
-            throw new RuntimeException("A route must contain at least two stops.");
+            throw new InvalidRouteException("A route must contain at least two stops.");
         }
 
         validateUniqueStopOrders(stops);
@@ -147,7 +150,7 @@ public class RouteService {
 
         for (RouteStopRequest stop : stops) {
             if (!stopOrders.add(stop.getStopOrder())) {
-                throw new RuntimeException("Duplicate stop order: " + stop.getStopOrder());
+                throw new InvalidRouteException("Duplicate stop order: " + stop.getStopOrder());
             }
         }
     }
@@ -159,7 +162,7 @@ public class RouteService {
             String normalizedStationName = stop.getStationName().trim().toLowerCase();
 
             if (!stationNames.add(normalizedStationName)) {
-                throw new RuntimeException("Duplicate station in route: " + stop.getStationName());
+                throw new InvalidRouteException("Duplicate station in route: " + stop.getStationName());
             }
         }
     }
@@ -173,18 +176,18 @@ public class RouteService {
         RouteStopRequest lastStop = sortedStops.get(sortedStops.size() - 1);
 
         if (firstStop.getDepartureTime() == null) {
-            throw new RuntimeException("First stop must have a departure time.");
+            throw new InvalidRouteException("First stop must have a departure time.");
         }
 
         if (lastStop.getArrivalTime() == null) {
-            throw new RuntimeException("Last stop must have an arrival time.");
+            throw new InvalidRouteException("Last stop must have an arrival time.");
         }
 
         for (int i = 1; i < sortedStops.size() - 1; i++) {
             RouteStopRequest currentStop = sortedStops.get(i);
 
             if (currentStop.getArrivalTime() == null || currentStop.getDepartureTime() == null) {
-                throw new RuntimeException(
+                throw new InvalidRouteException(
                         "Intermediate stop must have both arrival and departure time: "
                                 + currentStop.getStationName()
                 );
@@ -196,7 +199,7 @@ public class RouteService {
 
     private void validateTimeOrder(LocalTime arrivalTime, LocalTime departureTime, String stationName) {
         if (arrivalTime != null && departureTime != null && departureTime.isBefore(arrivalTime)) {
-            throw new RuntimeException("Departure time cannot be before arrival time for station: " + stationName);
+            throw new InvalidRouteException("Departure time cannot be before arrival time for station: " + stationName);
         }
     }
 }

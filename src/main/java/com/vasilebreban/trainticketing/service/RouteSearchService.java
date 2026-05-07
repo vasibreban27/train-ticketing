@@ -2,6 +2,7 @@ package com.vasilebreban.trainticketing.service;
 
 import com.vasilebreban.trainticketing.dto.response.RouteSearchResponse;
 import com.vasilebreban.trainticketing.dto.response.RouteSegmentResponse;
+import com.vasilebreban.trainticketing.exception.ResourceNotFoundException;
 import com.vasilebreban.trainticketing.model.Route;
 import com.vasilebreban.trainticketing.model.RouteStop;
 import com.vasilebreban.trainticketing.repository.RouteRepository;
@@ -31,7 +32,7 @@ public class RouteSearchService {
         results.addAll(findRoutesWithOneChange(routes, from, to));
 
         if (results.isEmpty()) {
-            throw new RuntimeException("No route found between " + from + " and " + to);
+            throw new ResourceNotFoundException("No route found between " + from + " and " + to);
         }
 
         return results;

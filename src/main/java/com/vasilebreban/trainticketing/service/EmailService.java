@@ -1,5 +1,6 @@
 package com.vasilebreban.trainticketing.service;
 
+import com.vasilebreban.trainticketing.exception.EmailSendingException;
 import com.vasilebreban.trainticketing.model.Booking;
 import com.vasilebreban.trainticketing.model.Train;
 import lombok.RequiredArgsConstructor;
@@ -88,7 +89,7 @@ public class EmailService {
             log.info("Email sent successfully to {}", to);
         } catch (MailException exception) {
             log.error("Failed to send email to {}", to, exception);
-            throw new RuntimeException("Failed to send email to " + to);
+            throw new EmailSendingException("Failed to send email to " + to);
         }
     }
 }

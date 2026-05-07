@@ -1,6 +1,8 @@
 package com.vasilebreban.trainticketing.service;
 
 import com.vasilebreban.trainticketing.dto.request.BookingRequest;
+import com.vasilebreban.trainticketing.exception.OverbookingException;
+import com.vasilebreban.trainticketing.exception.ResourceNotFoundException;
 import com.vasilebreban.trainticketing.model.Booking;
 import com.vasilebreban.trainticketing.model.Customer;
 import com.vasilebreban.trainticketing.model.Train;
@@ -24,13 +26,13 @@ public class BookingService {
 
     @Transactional
     public Booking createBooking(BookingRequest booking) {
-        Train train = trainRepository.findById(booking.getTrainId()).orElseThrow(() -> new RuntimeException("Train not found with id: " + booking.getTrainId()));
+        Train train = trainRepository.findById(booking.getTrainId()).orElseThrow(() -> new ResourceNotFoundException("Train not found with id: " + booking.getTrainId()));
 
         Integer bookedTickets = bookingRepository.countBookedSeatsByTrainId(train.getId());
         Integer availableSeats = train.getCapacity() - bookedTickets;
 
         if(booking.getNumberOfTickets() > availableSeats) {
-            throw new RuntimeException("Not enough seats availabe : Number of tickets exceeds available seats!");
+            throw new OverbookingException("Not enough seats available. Available seats: " + availableSeats);
         }
 
         Customer customer = customerRepository.findByEmailIgnoreCase(booking.getCustomerEmail())
@@ -52,7 +54,7 @@ public class BookingService {
 
     public Booking getBookingById(Long id) {
         return bookingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
     }
 
     private Customer createCustomer(BookingRequest request) {

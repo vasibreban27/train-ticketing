@@ -1,6 +1,8 @@
 package com.vasilebreban.trainticketing.service;
 
 import com.vasilebreban.trainticketing.dto.request.TrainRequest;
+import com.vasilebreban.trainticketing.exception.DuplicateResourceException;
+import com.vasilebreban.trainticketing.exception.ResourceNotFoundException;
 import com.vasilebreban.trainticketing.model.Train;
 import com.vasilebreban.trainticketing.repository.TrainRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,12 +22,12 @@ public class TrainService {
 
     public Train getTrainById(Long id) {
         return trainRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Train not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Train not found with id: " + id));
     }
 
     public Train createTrain(TrainRequest request) {
         if (trainRepository.existsByTrainNumberIgnoreCase(request.getTrainNumber())) {
-            throw new RuntimeException("Train already exists with number: " + request.getTrainNumber());
+            throw new DuplicateResourceException("Train already exists with number: " + request.getTrainNumber());
         }
 
         Train train = Train.builder()
@@ -48,7 +50,7 @@ public class TrainService {
 
     public void deleteTrain(Long id) {
         if (!trainRepository.existsById(id)) {
-            throw new RuntimeException("Train not found with id: " + id);
+            throw new ResourceNotFoundException("Train not found with id: " + id);
         }
 
         trainRepository.deleteById(id);
