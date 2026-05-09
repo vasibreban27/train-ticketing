@@ -1,0 +1,997 @@
+Train Ticketing - Postman Endpoint Tests
+Base URL: http://localhost:9095
+
+Note:
+- Use the paths exactly as shown:
+  /trains
+  /bookings
+  /routes
+  /admin/
+-For route creation validation tests, use a train that does not already have a route!!
+
+Recommended test order:
+1. Test demo data endpoints
+2. Test route search
+3. Test bookings
+4. Test admin train operations
+5. Test admin route operations
+6. Test delay notifications
+7. Test validation/error cases
+
+
+1. PUBLIC TRAIN ENDPOINTS
+
+1.1 Get all trains
+Method: GET
+URL: http://localhost:9095/trains
+
+Body: none
+
+Expected:
+- 200 OK
+- List of trains loaded by DataSeeder
+
+
+1.2 Get train by ID
+Method: GET
+URL: http://localhost:9095/trains/1
+
+Body: none
+
+Expected:
+- 200 OK
+- Train with id 1
+
+
+1.3 Get train with invalid ID
+Method: GET
+URL: http://localhost:9095/trains/999
+
+Body: none
+
+Expected:
+- Error response
+- Train not found
+
+
+
+2. PUBLIC ROUTE SEARCH ENDPOINTS
+
+2.1 Search direct route
+Method: GET
+URL: http://localhost:9095/routes/search?from=Cluj-Napoca&to=Brasov
+
+Body: none
+
+Expected:
+- 200 OK
+- DIRECT route
+- Example route: Cluj-Napoca -> Sibiu -> Brasov
+
+
+2.2 Search route with changeover
+Method: GET
+URL: http://localhost:9095/routes/search?from=Cluj-Napoca&to=Iasi
+
+Body: none
+
+Expected:
+- 200 OK
+- CHANGEOVER route
+- Example:
+  Segment 1: Cluj-Napoca -> Brasov
+  Segment 2: Brasov -> Iasi
+
+
+2.3 Search route with no connection
+Method: GET
+URL: http://localhost:9095/routes/search?from=Iasi&to=Cluj-Napoca
+
+Body: none
+
+Expected:
+- Error response
+- No route found
+
+
+2.4 Search route with unknown departure station
+Method: GET
+URL: http://localhost:9095/routes/search?from=Timisoara&to=Brasov
+
+Body: none
+
+Expected:
+- Error response
+- No route found
+
+
+2.5 Search route with unknown arrival station
+Method: GET
+URL: http://localhost:9095/routes/search?from=Cluj-Napoca&to=Constanta
+
+Body: none
+
+Expected:
+- Error response
+- No route found
+
+
+3. BOOKING ENDPOINTS
+
+3.1 Create booking
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "customerName": "Vasile Breban",
+  "customerEmail": "vasilebreban2017@gmail.com",
+  "numberOfTickets": 2
+}
+
+Expected:
+- 201 Created
+- Booking response
+- Confirmation email sent if SMTP is configured correctly
+
+
+3.2 Create another booking on same train
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "customerName": "Alex Pop",
+  "customerEmail": "alex.pop@example.com",
+  "numberOfTickets": 3
+}
+
+Expected:
+- 201 Created
+- Booking response
+- Booked tickets for train 1 increase by 3
+
+
+3.3 Get booking by ID
+Method: GET
+URL: http://localhost:9095/bookings/1
+
+Body: none
+
+Expected:
+- 200 OK
+- Booking with id 1
+
+
+3.4 Get booking with invalid ID
+Method: GET
+URL: http://localhost:9095/bookings/999
+
+Body: none
+
+Expected:
+- Error response
+- Booking not found
+
+
+3.5 Test overbooking
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "customerName": "Overbooking Test",
+  "customerEmail": "overbooking@example.com",
+  "numberOfTickets": 200
+}
+
+Expected:
+- Error response
+- Not enough seats available
+
+
+3.6 Booking with invalid email
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "customerName": "Invalid Email User",
+  "customerEmail": "not-an-email",
+  "numberOfTickets": 2
+}
+
+Expected:
+- 400 Bad Request
+- Email validation error
+
+
+3.7 Booking with zero tickets
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "customerName": "Zero Tickets User",
+  "customerEmail": "zero@example.com",
+  "numberOfTickets": 0
+}
+
+Expected:
+- 400 Bad Request
+- numberOfTickets must be at least 1
+
+
+3.8 Booking with negative tickets
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "customerName": "Negative Tickets User",
+  "customerEmail": "negative@example.com",
+  "numberOfTickets": -5
+}
+
+Expected:
+- 400 Bad Request
+- numberOfTickets must be at least 1
+
+
+3.9 Booking with missing trainId
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "customerName": "Missing Train User",
+  "customerEmail": "missing.train@example.com",
+  "numberOfTickets": 2
+}
+
+Expected:
+- 400 Bad Request
+- trainId is required
+
+
+3.10 Booking with missing customer name
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "customerName": "",
+  "customerEmail": "missing.name@example.com",
+  "numberOfTickets": 2
+}
+
+Expected:
+- 400 Bad Request
+- customerName is required
+
+
+3.11 Booking with invalid train ID
+Method: POST
+URL: http://localhost:9095/bookings
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 999,
+  "customerName": "Invalid Train User",
+  "customerEmail": "invalid.train@example.com",
+  "numberOfTickets": 2
+}
+
+Expected:
+- Error response
+- Train not found
+
+
+4. ADMIN TRAIN ENDPOINTS
+
+4.1 Create train
+Method: POST
+URL: http://localhost:9095/admin/trains
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainNumber": "IR-303",
+  "capacity": 120
+}
+
+Expected:
+- 201 Created
+- New train response
+
+
+4.2 Create train with duplicate train number
+Method: POST
+URL: http://localhost:9095/admin/trains
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainNumber": "IR-303",
+  "capacity": 120
+}
+
+Expected:
+- Error response
+- Train already exists
+
+
+4.3 Create train with empty train number
+Method: POST
+URL: http://localhost:9095/admin/trains
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainNumber": "",
+  "capacity": 120
+}
+
+Expected:
+- 400 Bad Request
+- trainNumber is required
+
+
+4.4 Create train with invalid capacity
+Method: POST
+URL: http://localhost:9095/admin/trains
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainNumber": "IR-INVALID",
+  "capacity": 0
+}
+
+Expected:
+- 400 Bad Request
+- capacity must be at least 1
+
+
+4.5 Update train
+Method: PUT
+URL: http://localhost:9095/admin/trains/3
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainNumber": "IR-303-UPDATED",
+  "capacity": 140
+}
+
+Important:
+- Replace 3 with the actual id returned by the create train request.
+
+Expected:
+- 200 OK
+- Updated train response
+
+
+4.6 Update train with invalid ID
+Method: PUT
+URL: http://localhost:9095/admin/trains/999
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainNumber": "IR-999",
+  "capacity": 140
+}
+
+Expected:
+- Error response
+- Train not found
+
+
+4.7 Delete train
+Method: DELETE
+URL: http://localhost:9095/admin/trains/3
+
+Body: none
+
+Important:
+- Replace 3 with an actual train id.
+- Do not delete a train that still has a route/bookings unless your service handles this.
+
+Expected:
+- 200 OK
+- Message: Train deleted successfully
+
+
+4.8 Delete train with invalid ID
+Method: DELETE
+URL: http://localhost:9095/admin/trains/999
+
+Body: none
+
+Expected:
+- Error response
+- Train not found
+
+
+5. ADMIN ROUTE ENDPOINTS
+
+5.1 Get all routes
+Method: GET
+URL: http://localhost:9095/admin/routes
+
+Body: none
+
+Expected:
+- 200 OK
+- List of routes
+
+
+5.2 Get route by ID
+Method: GET
+URL: http://localhost:9095/admin/routes/1
+
+Body: none
+
+Expected:
+- 200 OK
+- Route with id 1
+
+
+5.3 Get route with invalid ID
+Method: GET
+URL: http://localhost:9095/admin/routes/999
+
+Body: none
+
+Expected:
+- Error response
+- Route not found
+
+
+5.4 Create train before creating a new route
+Method: POST
+URL: http://localhost:9095/admin/trains
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainNumber": "IR-404",
+  "capacity": 90
+}
+
+Expected:
+- 201 Created
+- Save the returned train id for the next request
+
+
+5.5 Create route for new train
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "06:45"
+    },
+    {
+      "stationName": "Sibiu",
+      "stopOrder": 2,
+      "arrivalTime": "09:10",
+      "departureTime": "09:25"
+    },
+    {
+      "stationName": "Bucuresti",
+      "stopOrder": 3,
+      "arrivalTime": "14:30",
+      "departureTime": null
+    }
+  ]
+}
+
+Important:
+- Replace trainId 3 with the id returned by the previous train creation request.
+- Station names must exist in the DataSeeder or database.
+
+Expected:
+- 201 Created
+- Route response with train and ordered stops
+
+
+5.6 Create route for a train that already has a route
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 1,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "07:00"
+    },
+    {
+      "stationName": "Brasov",
+      "stopOrder": 2,
+      "arrivalTime": "12:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Route already exists for train id
+
+
+5.7 Create route with duplicate stop order
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "08:00"
+    },
+    {
+      "stationName": "Sibiu",
+      "stopOrder": 1,
+      "arrivalTime": "10:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Duplicate stop order
+
+
+5.8 Create route with duplicate station
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "08:00"
+    },
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 2,
+      "arrivalTime": "10:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Duplicate station in route
+
+
+5.9 Create route with only one stop
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "08:00"
+    }
+  ]
+}
+
+Expected:
+- Error response
+- A route must contain at least two stops
+
+
+5.10 Create route with unknown station
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "08:00"
+    },
+    {
+      "stationName": "Timisoara",
+      "stopOrder": 2,
+      "arrivalTime": "12:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Station not found
+
+
+5.11 Create route where first stop has no departure time
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": null
+    },
+    {
+      "stationName": "Brasov",
+      "stopOrder": 2,
+      "arrivalTime": "12:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- First stop must have a departure time
+
+
+5.12 Create route where last stop has no arrival time
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "08:00"
+    },
+    {
+      "stationName": "Brasov",
+      "stopOrder": 2,
+      "arrivalTime": null,
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Last stop must have an arrival time
+
+
+5.13 Create route where intermediate stop misses arrival/departure
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "08:00"
+    },
+    {
+      "stationName": "Sibiu",
+      "stopOrder": 2,
+      "arrivalTime": "10:00",
+      "departureTime": null
+    },
+    {
+      "stationName": "Brasov",
+      "stopOrder": 3,
+      "arrivalTime": "12:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Intermediate stop must have both arrival and departure time
+
+
+5.14 Create route where departure is before arrival at intermediate stop
+Method: POST
+URL: http://localhost:9095/admin/routes
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "08:00"
+    },
+    {
+      "stationName": "Sibiu",
+      "stopOrder": 2,
+      "arrivalTime": "10:00",
+      "departureTime": "09:50"
+    },
+    {
+      "stationName": "Brasov",
+      "stopOrder": 3,
+      "arrivalTime": "12:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Departure time cannot be before arrival time
+
+
+5.15 Update route
+Method: PUT
+URL: http://localhost:9095/admin/routes/3
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "07:00"
+    },
+    {
+      "stationName": "Brasov",
+      "stopOrder": 2,
+      "arrivalTime": "12:00",
+      "departureTime": "12:20"
+    },
+    {
+      "stationName": "Bucuresti",
+      "stopOrder": 3,
+      "arrivalTime": "15:30",
+      "departureTime": null
+    }
+  ]
+}
+
+Important:
+- Replace route id 3 with an actual route id.
+- Replace trainId 3 with an actual train id.
+
+Expected:
+- 200 OK
+- Updated route response
+
+
+5.16 Update route with invalid route ID
+Method: PUT
+URL: http://localhost:9095/admin/routes/999
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "trainId": 3,
+  "stops": [
+    {
+      "stationName": "Cluj-Napoca",
+      "stopOrder": 1,
+      "arrivalTime": null,
+      "departureTime": "07:00"
+    },
+    {
+      "stationName": "Brasov",
+      "stopOrder": 2,
+      "arrivalTime": "12:00",
+      "departureTime": null
+    }
+  ]
+}
+
+Expected:
+- Error response
+- Route not found
+
+
+5.17 Delete route
+Method: DELETE
+URL: http://localhost:9095/admin/routes/3
+
+Body: none
+
+Important:
+- Replace 3 with an actual route id.
+
+Expected:
+- 200 OK
+- Message: Route deleted successfully
+
+
+5.18 Delete route with invalid ID
+Method: DELETE
+URL: http://localhost:9095/admin/routes/999
+
+Body: none
+
+Expected:
+- Error response
+- Route not found
+
+
+6. ADMIN BOOKINGS AND DELAY ENDPOINTS
+
+6.1 Get bookings for train
+Method: GET
+URL: http://localhost:9095/admin/trains/1/bookings
+
+Body: none
+
+Expected:
+- 200 OK
+- List of bookings made for train 1
+
+
+6.2 Get bookings for invalid train
+Method: GET
+URL: http://localhost:9095/admin/trains/999/bookings
+
+Body: none
+
+Expected:
+- Error response
+- Train not found
+
+
+6.3 Mark train as delayed
+Method: POST
+URL: http://localhost:9095/admin/trains/1/delay
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "delayMinutes": 35
+}
+
+Expected:
+- 200 OK
+- Train response with delayMinutes = 35
+- Delay notification emails sent to all customers with bookings on train 1
+
+
+6.4 Mark train as delayed with invalid train ID
+Method: POST
+URL: http://localhost:9095/admin/trains/999/delay
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "delayMinutes": 35
+}
+
+Expected:
+- Error response
+- Train not found
+
+
+6.5 Mark train as delayed with zero delay
+Method: POST
+URL: http://localhost:9095/admin/trains/1/delay
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "delayMinutes": 0
+}
+
+Expected:
+- 400 Bad Request
+- delayMinutes must be at least 1
+
+
+6.6 Mark train as delayed with negative delay
+Method: POST
+URL: http://localhost:9095/admin/trains/1/delay
+Headers:
+Content-Type: application/json
+
+Body:
+{
+  "delayMinutes": -10
+}
+
+Expected:
+- 400 Bad Request
+- delayMinutes must be at least 1
