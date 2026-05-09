@@ -1058,6 +1058,81 @@ If implemented, this feature can be added on top of the existing `RouteSearchSer
 
 ---
 
+# Optional Problem 2 - Smart Task Prioritizer
+
+## Requirement
+
+The optional assignment requirement was:
+
+```text
+Suggest an interesting solution to a problem you define, and showcase a programmatic implementation for that problem.
+```
+
+## Problem Definition
+
+Many students and developers work on multiple tasks at the same time and often need to decide which task should be handled first.
+
+Choosing only by deadline is not always ideal. A task can be important but not urgent, urgent but low-value, or quick to complete. Therefore, a better prioritization approach should consider multiple factors.
+
+## Proposed Solution
+
+The proposed solution is a **Smart Task Prioritizer**, implemented as a small Java program independent from the train ticketing API.
+
+Each task has the following properties:
+
+- `title`
+- `urgency`, from 1 to 5
+- `importance`, from 1 to 5
+- `estimatedHours`
+- `deadlineDays`
+
+The program calculates a priority score for each task using this formula:
+
+```text
+score = importance * 3 + urgency * 2 + deadlinePressure - estimatedHours
+```
+
+The `deadlinePressure` value is calculated based on how close the deadline is:
+
+```text
+deadline <= 1 day   -> +10
+deadline <= 3 days  -> +6
+deadline <= 7 days  -> +3
+otherwise           -> +0
+```
+
+After calculating the score, the tasks are sorted in descending order, so the highest-priority task appears first.
+
+## Programmatic Implementation
+
+The implementation is located in:
+
+```text
+src/main/java/com/vasilebreban/trainticketing/optional
+```
+
+Main classes:
+
+```text
+Task.java
+TaskPriorityCalculator.java
+TaskPrioritizerDemo.java
+```
+
+## Example Output
+
+```text
+Prioritized tasks:
+Finish Java trainee assignment | score: 31 | urgency: 5 | importance: 5 | estimatedHours: 4 | deadlineDays: 1
+Prepare interview answers | score: 27 | urgency: 4 | importance: 5 | estimatedHours: 2 | deadlineDays: 3
+Refactor old project | score: 7 | urgency: 2 | importance: 3 | estimatedHours: 6 | deadlineDays: 10
+Clean local files | score: 4 | urgency: 1 | importance: 1 | estimatedHours: 1 | deadlineDays: 30
+```
+
+This optional feature demonstrates basic algorithmic thinking, Java object modeling, score calculation, and sorting with collections.
+
+---
+
 # Notes
 
 - The application does not include a frontend.
