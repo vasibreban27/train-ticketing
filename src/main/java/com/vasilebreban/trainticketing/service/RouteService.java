@@ -54,11 +54,11 @@ public class RouteService {
         Train train = trainRepository.findById(request.getTrainId())
                 .orElseThrow(() -> new ResourceNotFoundException("Train not found with id: " + request.getTrainId()));
 
+        validateRouteStops(request.getStops());
+
         if (routeRepository.existsByTrain_Id(train.getId())) {
             throw new DuplicateResourceException("Route already exists for train id: " + train.getId());
         }
-
-        validateRouteStops(request.getStops());
 
         Route route = Route.builder()
                 .train(train)
